@@ -10,6 +10,12 @@ from api_handlers import get_openweather_data, get_tomtom_traffic
 # Page Config
 st.set_page_config(page_title="ADAS Routing Engine", layout="wide")
 
+# Force early Streamlit Secrets initialization parsing (Python 3.13 fix)
+try:
+    _ = st.secrets
+except Exception:
+    pass
+
 # Inject Custom Tesla-Inspired CSS
 st.markdown("""
 <style>
@@ -173,6 +179,13 @@ if roads_gdf is not None:
 if roads_gdf is not None:
     # Sidebar: Complexity Filter
     st.sidebar.markdown("### 🎛️ Live Metrics")
+    
+    # Debug: Surface exact API connection failures to the Streamlit UI
+    if not weather_data:
+        st.sidebar.error("⚠️ Weather API Offline. Check Streamlit Secrets.")
+    if not traffic_data:
+        st.sidebar.error("⚠️ Traffic API Offline. Check Streamlit Secrets.")
+        
     st.sidebar.metric("Temp", f"{weather_data['temp']} °F" if weather_data else "N/A", weather_data['conditions'] if weather_data else "N/A")
     st.sidebar.metric("Solar Altitude", f"{weather_data['solar_altitude']}°" if weather_data else "N/A")
     st.sidebar.metric("Active Incidents", len(traffic_data) if traffic_data else 0)
