@@ -1,0 +1,12 @@
+streamlit
+folium
+streamlit-folium
+geopandas
+pandas
+numpy
+python-dotenv
+requests
+pysolar
+pytz
+osmnx
+networkx
