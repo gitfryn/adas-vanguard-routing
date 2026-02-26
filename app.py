@@ -7,10 +7,74 @@ import os
 from api_handlers import get_openweather_data, get_tomtom_traffic
 
 # Page Config
-st.set_page_config(page_title="Vanguard Roadway Risk Dashboard", layout="wide")
+# Page Config
+st.set_page_config(page_title="ADAS Routing Engine", layout="wide")
 
-st.title("🛣️ Vanguard Roadway Risk & Complexity Engine")
-st.sidebar.header("Managerial Controls")
+# Inject Custom Tesla-Inspired CSS
+st.markdown("""
+<style>
+    /* Global Background and Fonts */
+    .stApp {
+        background-color: #111111;
+        color: #f4f4f4;
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    /* Headers */
+    h1, h2, h3, h4 {
+        font-weight: 500 !important;
+        letter-spacing: 1.5px;
+        color: #ffffff !important;
+        text-transform: uppercase;
+    }
+    
+    /* Primary buttons */
+    .stButton>button {
+        background-color: #e82127; /* Tesla Red */
+        color: white;
+        border-radius: 4px;
+        border: none;
+        padding: 10px 24px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .stButton>button:hover {
+        background-color: #c01c21;
+        box-shadow: 0 4px 12px rgba(232, 33, 39, 0.4);
+    }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] {
+        background-color: #000000;
+        border-right: 1px solid #333333;
+    }
+    
+    /* Sliders and Metrics */
+    div[data-testid="stMetricValue"] {
+        color: #e82127;
+        font-weight: 700;
+    }
+    
+    div[data-baseweb="slider"] {
+        accent-color: #e82127 !important;
+    }
+    
+    /* Metric label text */
+    div[data-testid="stMetricLabel"] {
+        color: #888888;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("ADAS Risk & Complexity Engine")
+st.sidebar.markdown("### SYSTEM CONTROLS")
 
 # 1. Load Data
 @st.cache_data
@@ -206,10 +270,25 @@ if roads_gdf is not None:
     # Add Layer Control to toggle Data Feeds
     folium.LayerControl(collapsed=False).add_to(m)
 
-    st.sidebar.markdown("### 🗺️ Data Collection Routing")
-    st.sidebar.markdown("*Generate a high-yield loop from the Depot to capture ADAS Edge Cases.*")
-    drive_time = st.sidebar.slider("Target Drive Time (mins)", 15, 60, 30)
-    generate_route = st.sidebar.button("Generate Collection Route")
+    st.sidebar.markdown("### DATA COLLECTION ROUTING")
+    st.sidebar.markdown("<span style='color: #888; font-size: 0.9rem;'>Generate a high-yield loop from the Depot to capture ADAS Edge Cases.</span>", unsafe_allow_html=True)
+    
+    # Initialize session state for routing
+    if 'route_coords' not in st.session_state:
+        st.session_state.route_coords = None
+        st.session_state.route_metrics = None
+    
+    # Locked intervals for drive time
+    drive_time_options = {
+        "30 Minutes": 30,
+        "1 Hour": 60,
+        "2 Hours": 120,
+        "4 Hours": 240
+    }
+    selected_time_label = st.sidebar.selectbox("Target Collection Duration", list(drive_time_options.keys()))
+    drive_time_mins = drive_time_options[selected_time_label]
+    
+    generate_route = st.sidebar.button("INITIALIZE ROUTE")
 
     if generate_route:
         with st.spinner("Initializing OSMNX Graph and Calculating Optimal Path..."):
@@ -222,43 +301,130 @@ if roads_gdf is not None:
                 ox.settings.log_console = False
                 ox.settings.use_cache = True
                 
-                # Download street network around the depot (3km radius for POC speed)
-                G = ox.graph_from_point((depot_lat, depot_lon), dist=3000, network_type='drive')
-                orig = ox.distance.nearest_nodes(G, X=depot_lon, Y=depot_lat)
+                # Expand radius slightly based on requested time (POC approximation)
+                radius = 3000 if drive_time_mins <= 60 else 6000
+                st.sidebar.info(f"Downloading {radius}m network grid...")
                 
-                # Select a destination node roughly far away to simulate a loop anchor
-                nodes = list(G.nodes())
-                dest = random.choice(nodes)
+                from shapely.geometry import Point
                 
-                # Calculate the shortest path (in a full production system, weight='complexity')
-                path = nx.shortest_path(G, orig, dest, weight='length')
+                # Download street network around the depot
+                G = ox.graph_from_point((depot_lat, depot_lon), dist=radius, network_type='drive')
+                
+                # Project graph to avoid the scikit-learn unprojected error
+                G_proj = ox.project_graph(G)
+                
+                import math
+                
+                # Project the depot coordinates to match the graph's generated UTM CRS
+                depot_point = Point(depot_lon, depot_lat)
+                depot_proj, _ = ox.projection.project_geometry(depot_point, to_crs=G_proj.graph['crs'])
+                orig = ox.distance.nearest_nodes(G_proj, X=depot_proj.x, Y=depot_proj.y)
+                
+                nodes = list(G_proj.nodes())
+                
+                # Calculate target network distance (Average collection speed: 30mph or 13.4 m/s)
+                target_distance_m = drive_time_mins * 60 * 13.4
+                
+                # Build Continuous Multi-Waypoint Route Loop
+                path = [orig]
+                current_node = orig
+                accumulated_length = 0
+                waypoints = 0
+                max_waypoints = 15 # Safeguard against infinite loops in small grids
+                
+                while accumulated_length < (target_distance_m * 0.8) and waypoints < max_waypoints:
+                    # Sample 50 random nodes and pick one that is geometrically far from our current location to force a sweeping route
+                    sample = random.sample(nodes, min(50, len(nodes)))
+                    next_dest = max(sample, key=lambda n: math.hypot(
+                        G_proj.nodes[current_node]['x'] - G_proj.nodes[n]['x'], 
+                        G_proj.nodes[current_node]['y'] - G_proj.nodes[n]['y']
+                    ))
+                    
+                    try:
+                        sub_path = nx.shortest_path(G_proj, current_node, next_dest, weight='length')
+                        sub_gdf = ox.routing.route_to_gdf(G_proj, sub_path, weight='length')
+                        sub_len = sub_gdf['length'].sum()
+                        
+                        # Extend master path (skip the first node to avoid duplicate coordinates linking segments)
+                        path.extend(sub_path[1:])
+                        accumulated_length += sub_len
+                        current_node = next_dest
+                        waypoints += 1
+                        
+                    except Exception:
+                        pass
+                
+                # Final Leg: Route back to the starting Depot to close the loop
+                try:
+                    home_path = nx.shortest_path(G_proj, current_node, orig, weight='length')
+                    path.extend(home_path[1:])
+                except Exception:
+                    pass
                 
                 # Convert path to coordinate pairs [lat, lon] for Folium
                 route_coords = [(G.nodes[n]['y'], G.nodes[n]['x']) for n in path]
                 
-                # Draw the Route
-                folium.PolyLine(
-                    locations=route_coords,
-                    color="#8b5cf6", # Bright Purple
-                    weight=8,
-                    opacity=0.9,
-                    tooltip="Optimized ADAS Data Collection Route"
-                ).add_to(m)
+                # Calculate Final Mathematical Route Attributes
+                route_gdf = ox.routing.route_to_gdf(G_proj, path, weight='length')
+                total_length_m = route_gdf['length'].sum()
+                total_length_mi = total_length_m * 0.000621371
                 
-                # Add Endpoint Marker
-                end_lat, end_lon = route_coords[-1]
-                folium.Marker(
-                    location=[end_lat, end_lon],
-                    icon=folium.Icon(color="purple", icon="refresh"),
-                    tooltip="Route Turnaround Point"
-                ).add_to(m)
+                # Assuming 30mph (13.4 m/s) average ADAS collection speed in Tampa
+                est_time_mins = total_length_m / 13.4 / 60
                 
-                st.sidebar.success("✅ Route Generated Successfully!")
+                # Save to session state
+                st.session_state.route_coords = route_coords
+                st.session_state.route_metrics = {
+                    'dist': total_length_mi,
+                    'time': est_time_mins,
+                    'nodes': len(path)
+                }
+                
+                st.sidebar.success("✅ ROUTE COMPILED.")
+                
             except Exception as e:
-                st.sidebar.error(f"Routing Error: {e}")
+                st.sidebar.error(f"ROUTING ERROR: {str(e)}")
 
-    # Render Map
-    st_folium(m, width=1400, height=700)
+    # ALWAYS check session state to draw route and show manifest
+    if st.session_state.route_coords:
+        route_coords = st.session_state.route_coords
+        metrics = st.session_state.route_metrics
+        
+        # Draw the Route
+        folium.PolyLine(
+            locations=route_coords,
+            color="#e82127", # Tesla Red
+            weight=6,
+            opacity=0.9,
+            tooltip=f"Optimized Collection Route ({metrics['dist']:.1f} mi)"
+        ).add_to(m)
+        
+        # Add Endpoint Marker
+        end_lat, end_lon = route_coords[-1]
+        folium.Marker(
+            location=[end_lat, end_lon],
+            icon=folium.Icon(color="red", icon="refresh"),
+            tooltip="Route Turnaround Point"
+        ).add_to(m)
+        
+        # Force Map to Zoom to the Route
+        m.fit_bounds(route_coords)
+        
+        st.sidebar.markdown(f"""
+        **DRIVER DISPATCH MANIFEST**
+        * **Distance:** {metrics['dist']:.1f} miles
+        * **Est. Duration:** {metrics['time']:.0f} mins
+        * **Nodes Traversed:** {metrics['nodes']} Intersections
+        * **Objective:** Prioritize system engagement through generated high-complexity grid.
+        """)
+        
+        if st.sidebar.button("CLEAR ROUTE"):
+            st.session_state.route_coords = None
+            st.session_state.route_metrics = None
+            st.rerun()
+
+    # Render Map - Pass returned_objects=[] to completely decouple map interactions from triggering a Python backend refresh
+    st_folium(m, width=1400, height=700, returned_objects=[], use_container_width=True)
 else:
     st.error("Master GeoJSON not found in /data. Please verify your QGIS export.")
 
@@ -269,9 +435,7 @@ st.sidebar.info("""
 
 This engine identifies critical **Edge Cases** by calculating dynamic pathing complexity based on:
 1. **High-Injury Corridors & Historical Disengagements:** Prioritizing network clusters where autonomy historically hands off control.
-2. **Camera System Occlusion Risk:** Real-time calculation of blinding solar glare directly overwhelming vehicle optical sensors based on the current azimuth.
+2. **Camera System Occlusion Risk:** Real-time calculation of blinding solar glare directly overwhelming vehicle optical sensors.
 3. **Live Obstructions:** TomTom API integration for current construction and collision events.
 4. **Geometric Edge Cases:** Hard-coded spatial prioritization for Unmarked Roundabouts and active Zone-AE Floodways.
-
-*Use the **Layer Control** icon on the top right of the map to filter routing datasets.*
 """)
