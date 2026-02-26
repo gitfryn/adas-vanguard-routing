@@ -6,29 +6,7 @@ from dotenv import load_dotenv
 # Load environment variables from the .env file (for local development)
 load_dotenv()
 
-# Fallback checking: first check local OS environment (from .env), then check Streamlit Cloud secrets
-# Safely load API Keys handling both local (.env) and Streamlit Cloud (st.secrets)
-TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY")
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-
-# If local variables are missing, carefully attempt to load from Streamlit Cloud Secrets Manager.
-# We use a broad Exception catch here because Streamlit throws a specific `StreamlitSecretNotFoundError`
-# if the TOML file isn't perfectly parsed yet (common in Python 3.13 fast-boots).
-if not TOMTOM_API_KEY:
-    try:
-        from streamlit import secrets
-        if "TOMTOM_API_KEY" in secrets:
-            TOMTOM_API_KEY = secrets["TOMTOM_API_KEY"]
-    except Exception as e:
-        print(f"Skipping Streamlit Secrets for TomTom: {e}")
-
-if not OPENWEATHER_API_KEY:
-    try:
-        from streamlit import secrets
-        if "OPENWEATHER_API_KEY" in secrets:
-            OPENWEATHER_API_KEY = secrets["OPENWEATHER_API_KEY"]
-    except Exception as e:
-        print(f"Skipping Streamlit Secrets for OpenWeather: {e}")
+# Globals are removed to prevent Streamlit Cloud from caching empty API keys on initial module import.
 
 def get_tomtom_traffic(lat, lon, radius=5000):
     """
@@ -36,8 +14,21 @@ def get_tomtom_traffic(lat, lon, radius=5000):
     Requires TOMTOM_API_KEY to be set in the .env file.
     Radius is in meters (max 10,000). Returns list of significant incidents.
     """
-    if not TOMTOM_API_KEY:
-        print("Warning: TOMTOM_API_KEY is missing. Returning empty traffic data.")
+    api_key = os.getenv("TOMTOM_API_KEY")
+    if not api_key:
+        try:
+            import streamlit as st
+            # Avoid strict .get() or dictionary lookup on uninitialized st.secrets to prevent KeyError
+            if "TOMTOM_API_KEY" in st.secrets:
+                api_key = st.secrets["TOMTOM_API_KEY"]
+        except Exception as e:
+            import streamlit as st
+            st.error(f"TomTom Secret Extraction Failed: {e}")
+            pass
+
+    if not api_key:
+        import streamlit as st
+        st.error("Warning: TOMTOM_API_KEY is missing/empty. Returning empty traffic data.")
         return []
         
     # Bounding box is required for the Incident Details API. 
@@ -48,7 +39,7 @@ def get_tomtom_traffic(lat, lon, radius=5000):
     min_lon, max_lon = lon - offset, lon + offset
     bbox = f"{min_lon},{min_lat},{max_lon},{max_lat}"
 
-    url = f"https://api.tomtom.com/traffic/services/5/incidentDetails?key={TOMTOM_API_KEY}&bbox={bbox}&fields={'{'}incidents{'{'}type,geometry{'{'}type,coordinates{'}'},properties{'{'}iconCategory,magnitudeOfDelay{'}'}{'}'}{'}'}&language=en-GB&categoryFilter=0,1,2,3,4,5,6,7,8,9,10,11,14"
+    url = f"https://api.tomtom.com/traffic/services/5/incidentDetails?key={api_key}&bbox={bbox}&fields={'{'}incidents{'{'}type,geometry{'{'}type,coordinates{'}'},properties{'{'}iconCategory,magnitudeOfDelay{'}'}{'}'}{'}'}&language=en-GB&categoryFilter=0,1,2,3,4,5,6,7,8,9,10,11,14"
 
     try:
         response = requests.get(url, timeout=10)
@@ -70,10 +61,12 @@ def get_tomtom_traffic(lat, lon, radius=5000):
             
             return significant_incidents
         else:
-            print(f"TomTom Error {response.status_code}: {response.text}")
+            import streamlit as st
+            st.error(f"TomTom HTTP Error {response.status_code}: {response.text}")
             return []
     except Exception as e:
-        print(f"TomTom Connect Error: {e}")
+        import streamlit as st
+        st.error(f"TomTom Connect Exception: {e}")
         return []
 
 import datetime
@@ -86,11 +79,23 @@ def get_openweather_data(lat, lon):
     Requires OPENWEATHER_API_KEY to be set in the .env file.
     Returns weather details and calculates solar position.
     """
-    if not OPENWEATHER_API_KEY:
-        print("Warning: OPENWEATHER_API_KEY is missing. Returning empty weather data.")
+    api_key = os.getenv("OPENWEATHER_API_KEY")
+    if not api_key:
+        try:
+            import streamlit as st
+            if "OPENWEATHER_API_KEY" in st.secrets:
+                api_key = st.secrets["OPENWEATHER_API_KEY"]
+        except Exception as e:
+            import streamlit as st
+            st.error(f"OpenWeather Secret Extraction Failed: {e}")
+            pass
+
+    if not api_key:
+        import streamlit as st
+        st.error("Warning: OPENWEATHER_API_KEY is missing/empty. Returning empty weather data.")
         return None
         
-    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={OPENWEATHER_API_KEY}&units=imperial"
+    url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=imperial"
     
     try:
         response = requests.get(url, timeout=10)
@@ -111,8 +116,10 @@ def get_openweather_data(lat, lon):
                 "solar_azimuth": round(azimuth, 2)
             }
         else:
-            print(f"OpenWeather Error {response.status_code}: {response.text}")
+            import streamlit as st
+            st.error(f"OpenWeather HTTP Error {response.status_code}: {response.text}")
             return None
     except Exception as e:
-        print(f"OpenWeather Connect Error: {e}")
+        import streamlit as st
+        st.error(f"OpenWeather Connect Exception: {e}")
         return None
