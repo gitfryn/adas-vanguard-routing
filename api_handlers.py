@@ -7,15 +7,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Fallback checking: first check local OS environment (from .env), then check Streamlit Cloud secrets
-try:
-    TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY") or st.secrets["TOMTOM_API_KEY"]
-except Exception:
-    TOMTOM_API_KEY = None
+# Safely load API Keys handling both local (.env) and Streamlit Cloud (st.secrets)
+TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY")
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
-try:
-    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY") or st.secrets["OPENWEATHER_API_KEY"]
-except Exception:
-    OPENWEATHER_API_KEY = None
+# If local variables are missing, fall back to Streamlit Cloud Secrets Manager
+if not TOMTOM_API_KEY:
+    try:
+        from streamlit import secrets
+        TOMTOM_API_KEY = secrets.get("TOMTOM_API_KEY")
+    except ImportError:
+        pass
+
+if not OPENWEATHER_API_KEY:
+    try:
+        from streamlit import secrets
+        OPENWEATHER_API_KEY = secrets.get("OPENWEATHER_API_KEY")
+    except ImportError:
+        pass
 
 def get_tomtom_traffic(lat, lon, radius=5000):
     """
