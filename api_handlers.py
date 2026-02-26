@@ -11,20 +11,24 @@ load_dotenv()
 TOMTOM_API_KEY = os.getenv("TOMTOM_API_KEY")
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
-# If local variables are missing, fall back to Streamlit Cloud Secrets Manager
+# If local variables are missing, carefully attempt to load from Streamlit Cloud Secrets Manager.
+# We use a broad Exception catch here because Streamlit throws a specific `StreamlitSecretNotFoundError`
+# if the TOML file isn't perfectly parsed yet (common in Python 3.13 fast-boots).
 if not TOMTOM_API_KEY:
     try:
         from streamlit import secrets
-        TOMTOM_API_KEY = secrets.get("TOMTOM_API_KEY")
-    except ImportError:
-        pass
+        if "TOMTOM_API_KEY" in secrets:
+            TOMTOM_API_KEY = secrets["TOMTOM_API_KEY"]
+    except Exception as e:
+        print(f"Skipping Streamlit Secrets for TomTom: {e}")
 
 if not OPENWEATHER_API_KEY:
     try:
         from streamlit import secrets
-        OPENWEATHER_API_KEY = secrets.get("OPENWEATHER_API_KEY")
-    except ImportError:
-        pass
+        if "OPENWEATHER_API_KEY" in secrets:
+            OPENWEATHER_API_KEY = secrets["OPENWEATHER_API_KEY"]
+    except Exception as e:
+        print(f"Skipping Streamlit Secrets for OpenWeather: {e}")
 
 def get_tomtom_traffic(lat, lon, radius=5000):
     """
