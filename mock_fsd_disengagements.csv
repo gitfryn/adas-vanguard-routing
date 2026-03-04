@@ -1,0 +1,51 @@
+lat,lon,timestamp,type,severity,notes
+27.88048638,-82.50659765,2023-10-12T08:15:22Z,Intersection Confusion,High,Vehicle hesitated at complex 5-way intersection; safety driver forced to intervene to avoid rear-end collision.
+27.93728000,-82.49163113,2023-11-04T14:32:10Z,Phantom Braking,Medium,Sudden deceleration from 45mph to 30mph under clear overpass shadow.
+27.99601242,-82.41375774,2023-11-18T17:45:00Z,Lane Departure Error,Medium,Drifted toward right shoulder on slight curve; steering wheel vibrating warning triggered.
+27.96709981,-82.42780115,2023-12-02T09:12:33Z,Phantom Braking,Low,Mild inappropriate braking near pedestrian crossing (no pedestrians present).
+27.95310845,-82.50934109,2023-12-15T16:20:05Z,Intersection Confusion,Medium,Failed to properly identify right-of-way at 4-way stop.
+27.89562602,-82.34756197,2024-01-05T07:55:12Z,Phantom Braking,Low,System confused by low-angle morning sun reflection off preceding vehicle.
+27.97023243,-82.48480699,2024-01-20T13:40:45Z,Phantom Braking,Medium,Harsh braking on straightway; potential false-positive radar return from overhead sign.
+27.95419622,-82.43477382,2024-02-12T11:15:30Z,Phantom Braking,Low,Minor hesitation before proceeding through green light.
+27.93375677,-82.47690733,2024-03-01T15:50:22Z,Intersection Confusion,Medium,Attempted lane change mid-intersection; overridden by driver.
+27.98682309,-82.51993353,2024-03-15T18:05:10Z,Intersection Confusion,Medium,Poor tracking of turning lanes during left turn phase.
+27.95077116,-82.38294519,2024-04-02T10:25:45Z,Phantom Braking,Low,Slight brake tap; cause undetermined.
+27.96583724,-82.45143060,2024-04-18T14:10:33Z,Construction Zone Yield,Medium,Failed to sufficiently slow for active construction cones encroaching on lane.
+28.01108717,-82.44322117,2024-05-05T08:45:15Z,Phantom Braking,Medium,Unexpected 10mph speed drop on clear highway sector.
+27.99305421,-82.55026910,2024-05-22T17:30:50Z,Intersection Confusion,High,Vehicle attempted to turn wrong way down one-way street; immediate driver takeover required.
+27.94696268,-82.44819791,2024-06-10T12:05:22Z,Construction Zone Yield,Medium,Ignored temporary 'Merge Left' sign; driver took control.
+27.96381553,-82.43515550,2024-06-25T09:50:40Z,Phantom Braking,Low,Slowed excessively for curve.
+27.95178286,-82.42921210,2024-07-12T16:15:05Z,Construction Zone Yield,Medium,Close proximity (under 2ft) to temporary concrete barrier.
+27.95506300,-82.43550616,2024-07-30T14:40:30Z,Phantom Braking,High,Emergency braking engaged at 60mph for no apparent reason; significant rear-end risk.
+27.95072584,-82.38376092,2024-08-15T08:20:15Z,Lane Departure Error,Medium,Crossed double yellow line during slight left curve.
+27.95388451,-82.43421055,2024-09-02T17:55:50Z,Intersection Confusion,High,Failed to yield to oncoming traffic during unprotected left turn.
+27.96436991,-82.45561510,2024-09-20T11:10:05Z,Lane Departure Error,Medium,Ping-ponging between lane lines on grooved pavement.
+27.95042654,-82.45429269,2024-10-08T15:35:40Z,Construction Zone Yield,High,Did not recognize human flagger directing traffic; driver hard-braked.
+27.89543710,-82.34746437,2024-10-25T09:05:22Z,Lane Departure Error,High,Vehicle veered aggressively toward exit ramp grass separation.
+27.99650560,-82.55792454,2024-11-12T13:20:10Z,Intersection Confusion,Low,Slightly clumsy positioning in intersection but safely recovered.
+28.01044680,-82.44308558,2024-11-28T16:45:30Z,Lane Departure Error,High,Near-miss with barrier wall due to poor lane line visibility in rain.
+27.98664351,-82.52043107,2024-12-15T10:15:05Z,Construction Zone Yield,Low,Slightly late lane change for upcoming construction.
+27.95024958,-82.44908452,2025-01-05T14:50:50Z,Lane Departure Error,Low,Rode right lane line for 3 seconds before correction.
+28.01982026,-82.25896934,2025-01-22T08:30:15Z,Lane Departure Error,Low,Minor drift on straight road.
+27.95205214,-82.44594680,2025-02-10T17:10:40Z,Lane Departure Error,Medium,Failed to hold tight curve; drifted partially into adjacent lane.
+27.99625554,-82.48469745,2025-02-25T11:45:22Z,Intersection Confusion,Medium,Hesitation at roundabout entry.
+27.96057144,-82.41583616,2025-03-15T15:20:05Z,Lane Departure Error,Medium,Overcorrected after slight drift.
+27.94449564,-82.45558324,2025-04-02T09:35:45Z,Construction Zone Yield,High,Did not detect stopped construction vehicle in lane.
+27.95119332,-82.44977299,2025-04-20T13:05:10Z,Phantom Braking,Low,Minor speed reduction near bridge joint.
+27.89503757,-82.34777531,2025-05-08T16:55:30Z,Construction Zone Yield,Medium,Awkward navigation through S-curve cone setup.
+27.91119150,-82.50960861,2025-05-25T10:40:15Z,Construction Zone Yield,Medium,Got uncomfortably close to heavy machinery dumping material.
+27.94219624,-82.47197724,2025-06-12T14:25:50Z,Intersection Confusion,Medium,Took right turn too wide into adjacent lane.
+27.94735177,-82.44860612,2025-06-30T08:15:05Z,Lane Departure Error,Medium,Confused by old, faded lane markings versus new markings.
+27.91161832,-82.50895528,2025-07-18T17:40:22Z,Lane Departure Error,High,Drifted into oncoming traffic lane on unmarked residential street.
+27.97338568,-82.46753775,2025-08-05T11:55:40Z,Construction Zone Yield,Low,Slightly late braking for steel road plate.
+27.95505227,-82.43572654,2025-08-22T15:10:15Z,Lane Departure Error,Medium,Failed to navigate shifted lanes in work zone.
+27.98305218,-82.56683140,2025-09-10T09:20:50Z,Intersection Confusion,Low,Late initiation of turn signal.
+28.05602089,-82.40221479,2025-09-28T13:45:05Z,Phantom Braking,High,Sudden aggressive stop on highway off-ramp.
+27.93529570,-82.45941131,2025-10-15T16:35:30Z,Phantom Braking,High,Hard braking due to large tumbleweed.
+27.93425160,-82.48322462,2025-11-02T10:05:15Z,Phantom Braking,Medium,Moderate braking due to bird flying close to windshield.
+28.04684555,-82.44273492,2025-11-20T14:50:40Z,Lane Departure Error,Low,Slight drift tracked for 5 seconds.
+28.12058696,-82.37494704,2025-12-08T08:10:22Z,Phantom Braking,Low,Minor speed scrub near electronic toll gantry.
+27.91861515,-82.52457063,2025-12-25T12:25:50Z,Phantom Braking,Low,System spooked by heavy rain downpour starting suddenly.
+27.93856322,-82.46811414,2026-01-12T17:05:15Z,Phantom Braking,Low,Unjustified minor deceleration.
+28.01929026,-82.25843394,2026-01-30T09:40:30Z,Construction Zone Yield,High,Nearly rear-ended crash attenuator truck; manual evasive maneuver taken.
+27.94305211,-82.45014340,2026-02-15T14:15:05Z,Construction Zone Yield,High,Failed to detect narrow lane shift; manual steering override.
