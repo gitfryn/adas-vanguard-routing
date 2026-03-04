@@ -44,8 +44,10 @@ This repository is structured for immediate deployment on Streamlit Community Cl
 
 *(Note: Streamlit Community Cloud puts apps to "sleep" after 7 days of inactivity. Simply visit the URL to wake the app back up; it may take ~60 seconds to boot the first time.)*
 
-## Tech Stack
-*   **Frontend:** Streamlit, Folium
-*   **Data Processing:** GeoPandas, Pandas, Numpy
-*   **Routing:** OSMnx, NetworkX
-*   **Live Data:** OpenWeatherMap API, TomTom Traffic API
+## Tech Stack & Architecture
+*   **Frontend UI:** Streamlit
+*   **Web Mapping:** Folium (`map_utils.py`)
+*   **Data Processing Pipeline:** GeoPandas, Pandas, Numpy
+*   **Graph Routing & Cost Matrix:** OSMnx, NetworkX (`routing.py`)
+*   **Complexity Heuristics:** Custom Python Math (`scoring.py`)
+*   **Live Data Fetching:** OpenWeatherMap API, TomTom Traffic API (`api_handlers.py`)
