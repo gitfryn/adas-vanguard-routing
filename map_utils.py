@@ -4,8 +4,8 @@ import streamlit as st
 from config import TAMPA_LAT, TAMPA_LON, DEPOT_LAT, DEPOT_LON
 
 def get_color(score):
-    if score < 40: return 'green'
-    if score < 70: return 'orange'
+    if score < 30: return 'green'
+    if score < 45: return 'orange'
     return 'red'
 
 def build_base_map():
@@ -33,7 +33,7 @@ def add_scored_roads_layer(m, filtered_gdf):
             name="Hillsborough Road Network",
             style_function=lambda x: {
                 'color': get_color(x['properties'].get('complexity', 0)),
-                'weight': 3 if x['properties'].get('complexity', 0) < 70 else 5,
+                'weight': 3 if x['properties'].get('complexity', 0) < 45 else 5,
                 'opacity': 0.8
             },
             tooltip=folium.GeoJsonTooltip(
