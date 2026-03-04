@@ -63,3 +63,13 @@ This repository is structured for immediate deployment on Streamlit Community Cl
 *   **Graph Routing & Cost Matrix:** OSMnx, NetworkX (`routing.py`)
 *   **Complexity Heuristics:** Custom Python Math (`scoring.py`)
 *   **Live Data Fetching:** OpenWeatherMap API, TomTom Traffic API (`api_handlers.py`)
+
+## Screenshots
+![Complexity Map](screenshots/complexity_map.png)
+![Disegagement Data](screenshots/disengagement_data.png)
+![Routing Manifest](screenshots/routing_manifest.png)
+
+
+
+
+
