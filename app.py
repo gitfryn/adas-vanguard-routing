@@ -198,7 +198,7 @@ if roads_gdf is not None:
         * **Distance:** {metrics['dist']:.1f} miles
         * **Est. Duration:** {metrics['time']:.0f} mins
         * **Nodes Traversed:** {metrics['nodes']} Intersections
-        * **Objective:** Prioritize system engagement through generated high-complexity grid.
+        * **Objective:** {metrics.get('explanation', 'Traverse mapped network geometry.')}
         """)
         
         if st.sidebar.button("CLEAR ROUTE"):

@@ -169,12 +169,22 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     
     est_time_mins = total_length_m / AVERAGE_SPEED_MPS / 60
     
+    est_time_mins = total_length_m / AVERAGE_SPEED_MPS / 60
+    
+    # Generate Route Explanation for Dispatchers
+    explanation = "Standard network traversal loop."
+    if traffic_data and len(traffic_data) > 0:
+        explanation = f"Prioritizing high-complexity edge cases while actively detouring around {len(traffic_data)} live traffic incidents/closures."
+    elif target_nodes:
+        explanation = "Dijkstra algorithm incentivized to actively hunt and traverse statistically dangerous/complex intersections."
+    
     return {
         'coords': route_coords,
         'metrics': {
             'dist': total_length_mi,
             'time': est_time_mins,
-            'nodes': len(path)
+            'nodes': len(path),
+            'explanation': explanation
         },
         'radius': radius
     }
