@@ -49,9 +49,10 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     # Extract edges to a GeoDataFrame to perform spatial operations
     _, edges_gdf = ox.graph_to_gdfs(G_proj)
     
-    # Create the base 'risk_weight' (Inverted formula to make complex roads 'cheaper' for Dijkstra)
     for u, v, k, data in G_proj.edges(keys=True, data=True):
-        length = data.get('length', 1.0)
+        raw_length = data.get('length', 1.0)
+        # Handle cases where osmnx length is a list of floats instead of a single float
+        length = float(raw_length[0]) if isinstance(raw_length, list) else float(raw_length)
         # Apply a heavy base penalty to "boring" generic roads to actively force the router
         # to deviate toward complex geometry to save mathematical cost.
         data['risk_weight'] = length * 3.0 
@@ -79,14 +80,17 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
                 target_nodes.add(v)
                 
                 if G_proj.has_edge(u, v, k):
-                    length = G_proj[u][v][k].get('length', 1.0)
-                    score = max(row['complexity'], 1) # Prevent division by zero
+                    edge_data = G_proj.get_edge_data(u, v, k)
+                    raw_len = edge_data.get('length', 1.0) if edge_data else 1.0
+                    length = float(raw_len[0]) if isinstance(raw_len, list) else float(raw_len)
+                    score = float(max(row['complexity'], 1)) # Prevent division by zero
                     
                     # Core Autonomous Optimization Math:
                     # By dividing physical length by the hazard complexity, the routing 
                     # algorithm is mathematically tricked into viewing highly dangerous 
                     # intersections as "shortcuts".
-                    G_proj[u][v][k]['risk_weight'] = length / score
+                    if edge_data:
+                        edge_data['risk_weight'] = length / score
 
     # 2. Map Traffic Incidents (Avoidance Penalty)
     if traffic_data:
@@ -104,17 +108,20 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
             for idx, row in edges_with_incidents.iterrows():
                 u, v, k = idx[0], idx[1], idx[2]
                 if G_proj.has_edge(u, v, k):
-                    length = G_proj[u][v][k].get('length', 1.0)
+                    edge_data = G_proj.get_edge_data(u, v, k)
+                    raw_len = edge_data.get('length', 1.0) if edge_data else 1.0
+                    length = float(raw_len[0]) if isinstance(raw_len, list) else float(raw_len)
                     
                     # Scale the Dijkstra penalty based on TomTom's reported severity magnitude (1-4)
-                    severity = row.get('magnitude', 3)
+                    severity = float(row.get('magnitude', 3))
                     
                     # A severity 1 or 2 (minor delay) gets a slight detour push
                     # A severity 3 or 4 (major delay/closure) gets a massive 1000x hard block
-                    penalty_multiplier = 10.0 if severity <= 2 else 1000.0
+                    penalty_multiplier = 10.0 if severity <= 2.0 else 1000.0
                     
-                    G_proj[u][v][k]['risk_weight'] = length * penalty_multiplier 
-                    G_proj[u][v][k]['is_incident'] = True
+                    if edge_data:
+                        edge_data['risk_weight'] = length * penalty_multiplier 
+                        edge_data['is_incident'] = True
                     
     # -------------------------------------------------------------
     
@@ -126,7 +133,7 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     # Build Continuous Multi-Waypoint Route Loop
     path = [orig]
     current_node = orig
-    accumulated_length = 0
+    accumulated_length = 0.0
     waypoints = 0
     max_waypoints = 15 # Safeguard against infinite loops in small grids
     
@@ -139,8 +146,8 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
         # to force an expansive, sweeping route around the city instead of a tight knot.
         sample = random.sample(target_pool, min(50, len(target_pool)))
         next_dest = max(sample, key=lambda n: math.hypot(
-            G_proj.nodes[current_node]['x'] - G_proj.nodes[n]['x'], 
-            G_proj.nodes[current_node]['y'] - G_proj.nodes[n]['y']
+            float(G_proj.nodes[current_node].get('x', 0.0)) - float(G_proj.nodes[n].get('x', 0.0)), 
+            float(G_proj.nodes[current_node].get('y', 0.0)) - float(G_proj.nodes[n].get('y', 0.0))
         ))
         
         try:
@@ -149,11 +156,11 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
             
             # We calculate actual physical attributes using real length to keep manifest accurate
             sub_gdf = ox.routing.route_to_gdf(G_proj, sub_path, weight='length')
-            sub_len = sub_gdf['length'].sum()
+            sub_len = float(sub_gdf['length'].sum())
             
             # Extend master path (skip the first node to avoid duplicate coordinates linking segments)
             path.extend(sub_path[1:])
-            accumulated_length += sub_len
+            accumulated_length += float(sub_len)
             current_node = next_dest
             waypoints += 1
             
