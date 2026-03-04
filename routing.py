@@ -22,7 +22,7 @@ def get_cached_graph(radius):
     
     G = ox.graph_from_point((DEPOT_LAT, DEPOT_LON), dist=radius, network_type='drive')
     G_proj = ox.project_graph(G)
-    return G_proj
+    return G, G_proj
 
 def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     """
@@ -34,8 +34,8 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     # Expand radius slightly based on requested time (POC approximation)
     radius = 3000 if drive_time_mins <= 60 else 6000
     
-    # Retrieve the cached street network
-    G_proj = get_cached_graph(radius)
+    # Retrieve both the pure Lat/Lon graph (for Folium mapping) and UTM graph (for distance math)
+    G, G_proj = get_cached_graph(radius)
     
     # Project the depot coordinates to match the graph's generated UTM CRS
     depot_point = Point(DEPOT_LON, DEPOT_LAT)
@@ -145,8 +145,8 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
         pass
     
     # Convert path to coordinate pairs [lat, lon] for Folium
-    # G_proj stores its UTM coordinates in 'x'/'y', but preserves lat/lon in 'lat'/'lon' attributes
-    route_coords = [(G_proj.nodes[n]['lat'], G_proj.nodes[n]['lon']) for n in path]
+    # We purposefully extract these from the UNPROJECTED graph 'G' so they remain in standard Lat/Lon degrees
+    route_coords = [(G.nodes[n]['y'], G.nodes[n]['x']) for n in path]
     
     # Calculate Final Mathematical Route Attributes
     route_gdf = ox.routing.route_to_gdf(G_proj, path, weight='length')
