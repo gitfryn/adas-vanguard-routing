@@ -144,7 +144,9 @@ if roads_gdf is not None:
     st.sidebar.metric("Active Incidents", len(traffic_data) if traffic_data else 0)
     st.sidebar.markdown("---")
     
-    risk_threshold = st.sidebar.slider("Minimum Complexity Score", 0, 100, 0)
+    max_score = int(roads_gdf['complexity'].max()) if not roads_gdf['complexity'].empty else 100
+    max_score = max(1, max_score) # Prevent slider crash if max is 0
+    risk_threshold = st.sidebar.slider("Minimum Complexity Score", 0, max_score, 0)
     filtered_gdf = roads_gdf[roads_gdf['complexity'] >= risk_threshold]
     
     # Build Map

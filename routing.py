@@ -52,8 +52,12 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     # Create the base 'risk_weight' (Inverted formula to make complex roads 'cheaper' for Dijkstra)
     for u, v, k, data in G_proj.edges(keys=True, data=True):
         length = data.get('length', 1.0)
-        data['risk_weight'] = length / 1.0 # Default un-scored weight
+        # Apply a heavy base penalty to "boring" generic roads to actively force the router
+        # to deviate toward complex geometry to save mathematical cost.
+        data['risk_weight'] = length * 3.0 
         data['is_incident'] = False
+        
+    target_nodes = set()
         
     # 1. Map Complexity Scores from roads_gdf onto the graph edges
     if roads_gdf is not None and not roads_gdf.empty:
@@ -69,6 +73,11 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
             if pd.notna(row.get('complexity')):
                 # Grab the graph edge keys
                 u, v, k = idx[0], idx[1], idx[2]
+                
+                # Add these nodes to our target waypoint pool
+                target_nodes.add(u)
+                target_nodes.add(v)
+                
                 if G_proj.has_edge(u, v, k):
                     length = G_proj[u][v][k].get('length', 1.0)
                     score = max(row['complexity'], 1) # Prevent division by zero
@@ -113,8 +122,13 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     max_waypoints = 15 # Safeguard against infinite loops in small grids
     
     while accumulated_length < (target_distance_m * 0.8) and waypoints < max_waypoints:
-        # Sample 50 random nodes and pick one that is geometrically far from our current location to force a sweeping route
-        sample = random.sample(nodes, min(50, len(nodes)))
+        # We want our waypoints to exclusively be high-complexity intersections to force the route 
+        # to encompass the generated spatial risks. Fallback to random map nodes if none exist.
+        target_pool = list(target_nodes) if target_nodes else nodes
+        
+        # Sample random nodes and pick one that is geometrically far from our current location 
+        # to force an expansive, sweeping route around the city instead of a tight knot.
+        sample = random.sample(target_pool, min(50, len(target_pool)))
         next_dest = max(sample, key=lambda n: math.hypot(
             G_proj.nodes[current_node]['x'] - G_proj.nodes[n]['x'], 
             G_proj.nodes[current_node]['y'] - G_proj.nodes[n]['y']
