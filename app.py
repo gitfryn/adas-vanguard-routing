@@ -149,10 +149,14 @@ if roads_gdf is not None:
     risk_threshold = st.sidebar.slider("Minimum Complexity Score", 0, max_score, 0)
     filtered_gdf = roads_gdf[roads_gdf['complexity'] >= risk_threshold]
     
+    # Dynamic Color Thresholds
+    p75 = roads_gdf['complexity'].quantile(0.75) if not roads_gdf.empty else 40
+    p90 = roads_gdf['complexity'].quantile(0.90) if not roads_gdf.empty else 60
+    
     # Build Map
     m = map_utils.build_base_map()
     
-    map_utils.add_scored_roads_layer(m, filtered_gdf)
+    map_utils.add_scored_roads_layer(m, filtered_gdf, p75, p90)
     map_utils.add_roundabouts_layer(m, roundabouts_gdf)
     map_utils.add_disengagements_layer(m, fsd_df)
     map_utils.add_live_traffic_layer(m, traffic_data)

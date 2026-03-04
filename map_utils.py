@@ -3,10 +3,7 @@ import folium
 import streamlit as st
 from config import TAMPA_LAT, TAMPA_LON, DEPOT_LAT, DEPOT_LON
 
-def get_color(score):
-    if score < 30: return 'green'
-    if score < 45: return 'orange'
-    return 'red'
+# Removed global get_color in favor of dynamic scoping
 
 def build_base_map():
     # Center on Tampa per Blueprint
@@ -25,15 +22,26 @@ def build_base_map():
     ).add_to(m)
     return m
 
-def add_scored_roads_layer(m, filtered_gdf):
+def add_scored_roads_layer(m, filtered_gdf, p75=40, p90=60):
     if not filtered_gdf.empty:
+        def dynamic_color(score_val):
+            # Ensure score_val is safely comparable as a float
+            try:
+                score = float(score_val)
+            except:
+                score = 0.0
+                
+            if score < p75: return '#10b981' # Emerald Green
+            if score < p90: return '#f59e0b' # Amber Orange
+            return '#ef4444' # Rose Red
+            
         fg_roads = folium.FeatureGroup(name="🛣️ Roadway Complexity (Live)")
         folium.GeoJson(
             filtered_gdf,
             name="Hillsborough Road Network",
             style_function=lambda x: {
-                'color': get_color(x['properties'].get('complexity', 0)),
-                'weight': 3 if x['properties'].get('complexity', 0) < 45 else 5,
+                'color': dynamic_color(x['properties'].get('complexity', 0)),
+                'weight': 3 if float(x['properties'].get('complexity', 0)) < p90 else 5,
                 'opacity': 0.8
             },
             tooltip=folium.GeoJsonTooltip(
