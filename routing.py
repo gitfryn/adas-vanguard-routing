@@ -93,18 +93,27 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
         # Build Point geometries for active incidents
         incident_points = [Point(inc['geometry'][0][0], inc['geometry'][0][1]) for inc in traffic_data if inc.get('geometry')]
         if incident_points:
-            incidents_gdf = gpd.GeoDataFrame(geometry=incident_points, crs="EPSG:4326")
+            # Extract magnitude from the live data
+            magnitudes = [inc.get('magnitude', 3) for inc in traffic_data if inc.get('geometry')]
+            incidents_gdf = gpd.GeoDataFrame({'magnitude': magnitudes}, geometry=incident_points, crs="EPSG:4326")
             incidents_proj = incidents_gdf.to_crs(G_proj.graph['crs'])
             
             # Find any street edge within 100 meters of a major incident
-            edges_with_incidents = gpd.sjoin_nearest(edges_gdf, incidents_proj, how='inner', max_distance=100)
+            edges_with_incidents = gpd.sjoin_nearest(edges_gdf, incidents_proj[['geometry', 'magnitude']], how='inner', max_distance=100)
             
-            for idx, _ in edges_with_incidents.iterrows():
+            for idx, row in edges_with_incidents.iterrows():
                 u, v, k = idx[0], idx[1], idx[2]
                 if G_proj.has_edge(u, v, k):
                     length = G_proj[u][v][k].get('length', 1.0)
-                    # Apply an astronomical mathematical penalty so Dijkstra actively routes around the blockage
-                    G_proj[u][v][k]['risk_weight'] = length * 1000.0 
+                    
+                    # Scale the Dijkstra penalty based on TomTom's reported severity magnitude (1-4)
+                    severity = row.get('magnitude', 3)
+                    
+                    # A severity 1 or 2 (minor delay) gets a slight detour push
+                    # A severity 3 or 4 (major delay/closure) gets a massive 1000x hard block
+                    penalty_multiplier = 10.0 if severity <= 2 else 1000.0
+                    
+                    G_proj[u][v][k]['risk_weight'] = length * penalty_multiplier 
                     G_proj[u][v][k]['is_incident'] = True
                     
     # -------------------------------------------------------------
@@ -166,8 +175,6 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
     route_gdf = ox.routing.route_to_gdf(G_proj, path, weight='length')
     total_length_m = route_gdf['length'].sum()
     total_length_mi = total_length_m * 0.000621371
-    
-    est_time_mins = total_length_m / AVERAGE_SPEED_MPS / 60
     
     est_time_mins = total_length_m / AVERAGE_SPEED_MPS / 60
     
