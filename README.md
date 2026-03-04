@@ -1,17 +1,29 @@
 # Vanguard ADAS Data Collection Router
 
-An open-source intelligence dashboard designed for Advanced Driver Assistance Systems (ADAS) operations. This engine calculates dynamic pathing complexity using live APIs and open data to prioritize data-collection yields along spatial edge cases.
+A Streamlit-based routing and mapping application for Advanced Driver Assistance Systems (ADAS) data collection. This tool generates vehicle routing loops by evaluating roadway complexity using geospatial data and live APIs, aiming to identify diverse spatial edge cases for autonomous vehicle testing.
 
 ## Currently Implemented Features
 
-*   **Geospatial Complexity Scoring:** Dynamically weighs road segments based on High-Injury Networks and FDOT flood zones.
-*   **Live Weather & Solar Occlusion Modeling:** Integrates with OpenWeatherMap API to calculate current solar azimuth and altitude, flagging optical occlusion for vehicles driving directly into low-horizon glare.
-*   **Dynamic Obstruction Avoidance:** Connects to the TomTom API to pull real-time construction and collision events.
-*   **Complexity-Aware Routing Engine:** Utilizes `osmnx` and `networkx` to calculate high-yield autonomous driving loop routes. The algorithm mathematically optimizes for complex geometry, automatically deviating from the fastest path to prioritize hazardous intersections and avoid live traffic blockages.
+*   **Geospatial Complexity Scoring:** Applies configurable mathematical weights to road segments based on their presence in High-Injury Networks and FDOT flood zones.
+*   **Weather & Solar Data Integration:** Uses the OpenWeatherMap API to compute current solar azimuth and altitude, which estimates potential camera glare and sensor occlusion.
+*   **Traffic Incident Mapping:** Queries the TomTom API for active commercial traffic incidents to map real-time closures.
+*   **Weighted Routing Algorithm:** Uses `osmnx` and `networkx` to generate loop routes originating from a central depot. The Dijkstra-based algorithm replaces standard distance-based routing by factoring in road complexity scores and scaled live-traffic avoidance penalties to suggest paths covering diverse geometric environments.
+
+### Complexity Scoring Heuristics
+
+The engine relies on a weighted risk matrix to calculate the "cost" of traversing an intersection. Higher scores represent higher priority for data collection.
+
+| Factor | Weight | Description |
+| :--- | :--- | :--- |
+| **Base Complexity** | `+ 20` | Minimum global score applied to all mapped geometries. |
+| **High Injury Network** | `+ 10 to 20` | Applied if the corridor is flagged for historical multi-modal crashes. |
+| **Direct Solar Glare** | `+ up to 20` | Dynamic score generated when a road's bearing aligns directly with a low-altitude sun. |
+| **Active Flood Zone** | `+ 25` | Stacked when FEMA Zone AE boundaries intersect with active rainfall API data. |
+| **Traffic Incidents** | `10x to 1000x` | Dijkstra routing cost multiplier (penalty) applied to avoid routing into live closures. |
 
 ## Product Roadmap (Future Work)
 
-*   **Spatial Clustering Analytics:** Apply DBSCAN algorithms to automatically identify statistically significant groupings of historical ADAS failures.
+*   **Spatial Clustering Analytics:** Implement DBSCAN to identify statistically significant geographic clusters of historical ADAS failures.
 *   **Dynamic Radius Adjustment:** Scale the grid download radius algorithmically based on real-time traffic density rather than static time thresholds.
 *   **GPX / GeoJSON Download:** Add export functionality for the generated Driver Manifest to be loaded directly into fleet management software.
 *   **Asynchronous API Fetches:** Utilize `asyncio` to pull weather and traffic layers simultaneously to drop initial map-render latencies.
@@ -51,10 +63,3 @@ This repository is structured for immediate deployment on Streamlit Community Cl
 *   **Graph Routing & Cost Matrix:** OSMnx, NetworkX (`routing.py`)
 *   **Complexity Heuristics:** Custom Python Math (`scoring.py`)
 *   **Live Data Fetching:** OpenWeatherMap API, TomTom Traffic API (`api_handlers.py`)
-
-## Screenshots
-<img width="1908" height="988" alt="routing_manifest" src="https://github.com/user-attachments/assets/f5e5cf68-0e43-4e7a-96b6-cbb62e816f8c" />
-<img width="1920" height="989" alt="disengagement_data" src="https://github.com/user-attachments/assets/29359069-a622-4e59-88de-a37b224fbc41" />
-<img width="1920" height="989" alt="complexity_map" src="https://github.com/user-attachments/assets/a121de83-2ab0-412f-90d3-ea259653eab0" />
-
-
