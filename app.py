@@ -150,8 +150,8 @@ if roads_gdf is not None:
     filtered_gdf = roads_gdf[roads_gdf['complexity'] >= risk_threshold]
     
     # Dynamic Color Thresholds
-    p75 = roads_gdf['complexity'].quantile(0.75) if not roads_gdf.empty else 40
-    p90 = roads_gdf['complexity'].quantile(0.90) if not roads_gdf.empty else 60
+    p75 = float(roads_gdf['complexity'].quantile(0.75)) if not roads_gdf.empty else 40.0
+    p90 = float(roads_gdf['complexity'].quantile(0.90)) if not roads_gdf.empty else 60.0
     
     # Build Map
     m = map_utils.build_base_map()
