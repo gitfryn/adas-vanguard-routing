@@ -145,7 +145,8 @@ def generate_loop_route(drive_time_mins, roads_gdf, traffic_data):
         pass
     
     # Convert path to coordinate pairs [lat, lon] for Folium
-    route_coords = [(G_proj.nodes[n]['y'], G_proj.nodes[n]['x']) for n in path]
+    # G_proj stores its UTM coordinates in 'x'/'y', but preserves lat/lon in 'lat'/'lon' attributes
+    route_coords = [(G_proj.nodes[n]['lat'], G_proj.nodes[n]['lon']) for n in path]
     
     # Calculate Final Mathematical Route Attributes
     route_gdf = ox.routing.route_to_gdf(G_proj, path, weight='length')
